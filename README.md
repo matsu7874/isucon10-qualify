@@ -2,6 +2,7 @@
 
 ## Member
 - @matsu7874
+- @nanae772
 
 ## Links
 
