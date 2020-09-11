@@ -5,8 +5,8 @@
 
 ## Links
 
-ISUCON10 予選ポータルサイト https://portal.isucon.net/
-
+- [ISUCON10 予選ポータルサイト](https://portal.isucon.net/)
+- [ISUCON10 予選レギュレーション : ISUCON公式Blog](http://isucon.net/archives/54753430.html)
 ## Discordより
 
 当日の流れは以下のようになります。
