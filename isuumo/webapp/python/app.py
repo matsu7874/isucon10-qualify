@@ -104,7 +104,7 @@ CHAIR_KINDS = {
     "ハンモック": 3,
 }
 
-ESTATE_KINDS = {
+ESTATE_FEATURES = {
     "最上階": 0,
     "防犯カメラ": 1,
     "ウォークインクローゼット": 2,
