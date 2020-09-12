@@ -7,7 +7,7 @@ import flask
 from werkzeug.exceptions import BadRequest, NotFound
 import mysql.connector
 from sqlalchemy.pool import QueuePool
-from humps import camelize
+from humps import camelize # snake_case を camelCase に変換するものらしい
 
 # この定数が何なのか気になる
 LIMIT = 20
@@ -389,7 +389,7 @@ def post_estate_nazotte():
     results["count"] = len(results["estates"])
     return results
 
-
+# 特定の不動産の情報を取得(by id)
 @app.route("/api/estate/<int:estate_id>", methods=["GET"])
 def get_estate(estate_id):
     estate = select_row("SELECT * FROM estate WHERE id = %s", (estate_id,))
@@ -397,28 +397,37 @@ def get_estate(estate_id):
         raise NotFound()
     return camelize(estate)
 
-
+# 特定の椅子(by id)に対するオススメの不動産を取得(人気降順)
 @app.route("/api/recommended_estate/<int:chair_id>", methods=["GET"])
 def get_recommended_estate(chair_id):
     chair = select_row("SELECT * FROM chair WHERE id = %s", (chair_id,))
     if chair is None:
         raise BadRequest(f"Invalid format searchRecommendedEstateWithChair id : {chair_id}")
     w, h, d = chair["width"], chair["height"], chair["depth"]
+
+    # このクエリ条件が多くて遅そう?
+    # 椅子がドアを通るかどうかを判定している
     query = (
         "SELECT * FROM estate"
-        " WHERE (door_width >= %s AND door_height >= %s)"
-        "    OR (door_width >= %s AND door_height >= %s)"
-        "    OR (door_width >= %s AND door_height >= %s)"
-        "    OR (door_width >= %s AND door_height >= %s)"
-        "    OR (door_width >= %s AND door_height >= %s)"
-        "    OR (door_width >= %s AND door_height >= %s)"
+        " WHERE (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の幅, ドアの高さ >= 椅子の高さ
+        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の幅, ドアの高さ >= 椅子の奥行
+        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の高さ, ドアの高さ >= 椅子の幅
+        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の高さ, ドアの高さ >= 椅子の奥行
+        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の奥行, ドアの高さ >= 椅子の幅
+        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の奥行, ドアの高さ >= 椅子の高さ
+        # まず w, h, d をソートして w <= h <= d である状態にしておく、一番長いところは明らかに使わないほうが良いので
+        # w, h だけ考えればよくなる
+        # w <= h より 
+        # w >= min(door_width, door_height)
+        # h >= max(door_width, dorr_height)
+        # であることだけを確かめればよい？（要検証）
         " ORDER BY popularity DESC, id ASC"
         " LIMIT %s"
     )
     estates = select_all(query, (w, h, w, d, h, w, h, d, d, w, d, h, LIMIT))
     return {"estates": camelize(estates)}
 
-
+# 新しい椅子の入稿
 @app.route("/api/chair", methods=["POST"])
 def post_chair():
     if "chairs" not in flask.request.files:
@@ -439,7 +448,7 @@ def post_chair():
     finally:
         cnx.close()
 
-
+# 新しい不動産の入稿
 @app.route("/api/estate", methods=["POST"])
 def post_estate():
     if "estates" not in flask.request.files:
