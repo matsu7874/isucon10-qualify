@@ -279,8 +279,8 @@ def get_chair_search():
             if fc not in CHAIR_FEATURES:
                 continue
             feature_bitset ^= 1 << CHIAR_FEATURES[fc]
-        conditions.append("feature_idx = %s")
-        params.append(feature_bitset)
+        conditions.append("feature_idx & %s = %s")
+        params.append(feature_bitset, feature_bitset)
 
     # 条件が未指定の場合、検索に失敗する
     if len(conditions) == 0:
