@@ -27,7 +27,7 @@ mysql_connection_env = {
 }
 
 # pool_size=10っていうのは良い値なのか？
-cnxpool = QueuePool(lambda: mysql.connector.connect(**mysql_connection_env), pool_size=10) 
+cnxpool = QueuePool(lambda: mysql.connector.connect(**mysql_connection_env), pool_size=10)
 
 
 def select_all(query, *args, dictionary=True):
@@ -158,7 +158,7 @@ def get_chair_search():
     # 文字列検索だし LIKE 使っているのでSQLの改善余地がありそう
     if args.get("features"):
         for feature_confition in args.get("features").split(","):
-            conditions.append("features LIKE CONCAT('%', %s, '%')") 
+            conditions.append("features LIKE CONCAT('%', %s, '%')")
             params.append(feature_confition)
 
     # 条件が未指定の場合、検索に失敗する
@@ -178,7 +178,7 @@ def get_chair_search():
         per_page = int(args.get("perPage"))
     except (TypeError, ValueError):
         raise BadRequest("Invalid format perPage parameter")
-    
+
     search_condition = " AND ".join(conditions)
 
     # 最初に全件数を取得する
@@ -235,46 +235,36 @@ def get_estate_search():
     params = []
 
     if args.get("doorHeightRangeId"):
+        door_height = None
         for _range in estate_search_condition["doorHeight"]["ranges"]:
             if _range["id"] == int(args.get("doorHeightRangeId")):
                 door_height = _range
                 break
-        else:
+        if door_height is None:
             raise BadRequest("doorHeightRangeId invalid")
-        if door_height["min"] != -1:
-            conditions.append("door_height >= %s")
-            params.append(door_height["min"])
-        if door_height["max"] != -1:
-            conditions.append("door_height < %s")
-            params.append(door_height["max"])
+        conditions.append("dh_idx = %s")
+        params.append(door_height["id"])
 
     if args.get("doorWidthRangeId"):
+        door_width = None
         for _range in estate_search_condition["doorWidth"]["ranges"]:
             if _range["id"] == int(args.get("doorWidthRangeId")):
                 door_width = _range
                 break
-        else:
+        if door_width is None:
             raise BadRequest("doorWidthRangeId invalid")
-        if door_width["min"] != -1:
-            conditions.append("door_width >= %s")
-            params.append(door_width["min"])
-        if door_width["max"] != -1:
-            conditions.append("door_width < %s")
-            params.append(door_width["max"])
+        conditions.append("dw_idx = %s")
+        params.append(door_width["id"])
 
     if args.get("rentRangeId"):
+        rent = None
         for _range in estate_search_condition["rent"]["ranges"]:
             if _range["id"] == int(args.get("rentRangeId")):
                 rent = _range
-                break
-        else:
+        if rent is None:
             raise BadRequest("rentRangeId invalid")
-        if rent["min"] != -1:
-            conditions.append("rent >= %s")
-            params.append(rent["min"])
-        if rent["max"] != -1:
-            conditions.append("rent < %s")
-            params.append(rent["max"])
+        conditions.append("rent_idx = %s")
+        params.append(rent["id"])
 
     if args.get("features"):
         for feature_confition in args.get("features").split(","):
@@ -296,14 +286,26 @@ def get_estate_search():
 
     search_condition = " AND ".join(conditions)
 
-    query = f"SELECT COUNT(*) as count FROM estate WHERE {search_condition}"
+    query = f"SELECT COUNT(*) as count FROM _search_estate WHERE {search_condition}"
     count = select_row(query, params)["count"]
 
     # 人気降順にソート
-    query = f"SELECT * FROM estate WHERE {search_condition} ORDER BY popularity DESC, id ASC LIMIT %s OFFSET %s"
-    chairs = select_all(query, params + [per_page, per_page * page])
+    query = f'''
+        WITH _search_conditions AS
+            SELECT *
+            FROM _search_estate
+            WHERE {search_condition}
+            ORDER BY popularity DESC, id ASC
+            LIMIT %s
+            OFFSET %s
+        SELECT
+            es.*
+        FROM _search_conditions sc
+        INNER JOIN estate es USING (id)
+    '''
+    estates = select_all(query, params + [per_page, per_page * page])
 
-    return {"count": count, "estates": camelize(chairs)}
+    return {"count": count, "estates": camelize(estates)}
 
 
 @app.route("/api/estate/search/condition", methods=["GET"])
@@ -417,7 +419,7 @@ def get_recommended_estate(chair_id):
         "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の奥行, ドアの高さ >= 椅子の高さ
         # まず w, h, d をソートして w <= h <= d である状態にしておく、一番長いところは明らかに使わないほうが良いので
         # w, h だけ考えればよくなる
-        # w <= h より 
+        # w <= h より
         # w >= min(door_width, door_height)
         # h >= max(door_width, dorr_height)
         # であることだけを確かめればよい？（要検証）
