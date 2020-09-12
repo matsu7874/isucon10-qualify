@@ -11,4 +11,7 @@ export MYSQL_PWD=${MYSQL_PASS:-isucon}
 export LANG="C.UTF-8"
 cd $CURRENT_DIR
 
-cat 0_Schema.sql 1_DummyEstateData.sql 2_DummyChairData.sql 3_Create_search_estate.sql | mysql --defaults-file=/dev/null -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USER $MYSQL_DBNAME
+cat 0_Schema.sql | mysql --defaults-file=/dev/null -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USER $MYSQL_DBNAME
+cat 1_DummyEstateData.sql | mysql --defaults-file=/dev/null -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USER $MYSQL_DBNAME
+cat 2_DummyChairData.sql | mysql --defaults-file=/dev/null -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USER $MYSQL_DBNAME
+cat 3_Create_search_estate.sql | mysql --defaults-file=/dev/null -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USER $MYSQL_DBNAME
