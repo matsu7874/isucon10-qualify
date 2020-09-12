@@ -319,16 +319,23 @@ def post_estate_req_doc(estate_id):
         raise NotFound()
     return {"ok": True}
 
-# nazotte とは？(そのような英語は無い)
+# nazotte とは？(そのような英語は無い) 不動産に関連している
+# このAPIが重いらしい(timeoutしている)
 @app.route("/api/estate/nazotte", methods=["POST"])
 def post_estate_nazotte():
+    # coordinates = 座標に関する指定が必須
     if "coordinates" not in flask.request.json:
         raise BadRequest()
     coordinates = flask.request.json["coordinates"]
     if len(coordinates) == 0:
         raise BadRequest()
+
+    # longitude = 経度, latitude = 緯度
+    # 複数の地点の(経度, 緯度)情報が与えられている
     longitudes = [c["longitude"] for c in coordinates]
     latitudes = [c["latitude"] for c in coordinates]
+
+    # 与えられた点全てを囲むような長方形
     bounding_box = {
         "top_left_corner": {"longitude": min(longitudes), "latitude": min(latitudes)},
         "bottom_right_corner": {"longitude": max(longitudes), "latitude": max(latitudes)},
@@ -337,6 +344,8 @@ def post_estate_nazotte():
     cnx = cnxpool.connect()
     try:
         cur = cnx.cursor(dictionary=True)
+
+        # bounding_box に含まれる全ての不動産を取得(人気降順)
         cur.execute(
             (
                 "SELECT * FROM estate"
@@ -350,11 +359,19 @@ def post_estate_nazotte():
                 bounding_box["top_left_corner"]["longitude"],
             ),
         )
-        estates = cur.fetchall()
+        estates = cur.fetchall() # 上とまとめてselect_allで良さそう(どうでもよいが)
+
+        # 上で得た不動産を何かの条件でさらに絞り込んでる？
+        # あえて段階を踏んでいるのは何か理由がある？
+        # polygon(多角形)に含まれる不動産のみを抽出しようとしてる(polygonとは？)
         estates_in_polygon = []
         for estate in estates:
+            # ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))
+            # ↑これが何かよく分からない
             query = "SELECT * FROM estate WHERE id = %s AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))"
             polygon_text = (
+                # ここ、読みづらい書き方ですね（ワンライナーでおしゃれではある）
+                # POLYGON(1 1,2 2,3 3) みたいな文字列になる
                 f"POLYGON(({','.join(['{} {}'.format(c['latitude'], c['longitude']) for c in coordinates])}))"
             )
             geom_text = f"POINT({estate['latitude']} {estate['longitude']})"
@@ -366,7 +383,7 @@ def post_estate_nazotte():
 
     results = {"estates": []}
     for i, estate in enumerate(estates_in_polygon):
-        if i >= NAZOTTE_LIMIT:
+        if i >= NAZOTTE_LIMIT: # NAZOTTE_LIMIT = 50
             break
         results["estates"].append(camelize(estate))
     results["count"] = len(results["estates"])
