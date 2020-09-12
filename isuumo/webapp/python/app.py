@@ -291,16 +291,14 @@ def get_estate_search():
 
     # 人気降順にソート
     query = f'''
-        WITH _search_conditions AS
-            SELECT *
+        SELECT
+            es.*
+        FROM (SELECT *
             FROM _search_estate
             WHERE {search_condition}
             ORDER BY popularity DESC, id ASC
             LIMIT %s
-            OFFSET %s
-        SELECT
-            es.*
-        FROM _search_conditions sc
+            OFFSET %s) as sc
         INNER JOIN estate es USING (id)
     '''
     estates = select_all(query, params + [per_page, per_page * page])
