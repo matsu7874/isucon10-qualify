@@ -578,7 +578,7 @@ def post_chair():
             for feature_cond in record[9].split(','):
                 if not(feature_cond in CHIAR_FEATURES):
                     continue
-                bitset_feature |= CHIAR_FEATURES[feature_cond]
+                bitset_feature |= 1 << CHIAR_FEATURES[feature_cond]
             hwd_limits = [80, 110, 150]
             price_limits = [3000, 6000, 9000, 15000]
             param = [
