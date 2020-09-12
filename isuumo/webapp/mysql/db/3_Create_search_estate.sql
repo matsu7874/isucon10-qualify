@@ -3,9 +3,6 @@ CREATE TABLE isuumo._search_estate AS
         id,
         latitude,
         longitude,
-        rent,
-        door_height,
-        door_width,
         features,
         popularity,
         case
@@ -34,3 +31,4 @@ ALTER TABLE isuumo._search_estate ADD PRIMARY KEY id;
 CREATE INDEX index_rent_idx ON isuumo._search_estate(rent_idx);
 CREATE INDEX index_dh_idx ON isuumo._search_estate(dh_idx);
 CREATE INDEX index_dw_idx ON isuumo._search_estate(dw_idx);
+CREATE INDEX index_popularity ON isuumo._search_estate(popularity);
