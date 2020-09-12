@@ -9,6 +9,7 @@ import mysql.connector
 from sqlalchemy.pool import QueuePool
 from humps import camelize
 
+# この定数が何なのか気になる
 LIMIT = 20
 NAZOTTE_LIMIT = 50
 
@@ -25,7 +26,8 @@ mysql_connection_env = {
     "database": getenv("MYSQL_DBNAME", "isuumo"),
 }
 
-cnxpool = QueuePool(lambda: mysql.connector.connect(**mysql_connection_env), pool_size=10)
+# pool_size=10っていうのは良い値なのか？
+cnxpool = QueuePool(lambda: mysql.connector.connect(**mysql_connection_env), pool_size=10) 
 
 
 def select_all(query, *args, dictionary=True):
@@ -37,7 +39,9 @@ def select_all(query, *args, dictionary=True):
     finally:
         cnx.close()
 
-
+# select_allしてからその先頭を返す
+# いかにも効率が悪そう
+# これって順序は保証されているんだろうか…？
 def select_row(*args, **kwargs):
     rows = select_all(*args, **kwargs)
     return rows[0] if len(rows) > 0 else None
@@ -58,19 +62,20 @@ def post_initialize():
 
     return {"language": "python"}
 
-
+# estate = 土地
+# LIMIT = 20 と上で定義されていたので20行取ってくる
 @app.route("/api/estate/low_priced", methods=["GET"])
 def get_estate_low_priced():
     rows = select_all("SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT %s", (LIMIT,))
     return {"estates": camelize(rows)}
 
-
+# where stock > 0 なので在庫があるものを取ってくる
 @app.route("/api/chair/low_priced", methods=["GET"])
 def get_chair_low_priced():
     rows = select_all("SELECT * FROM chair WHERE stock > 0 ORDER BY price ASC, id ASC LIMIT %s", (LIMIT,))
     return {"chairs": camelize(rows)}
 
-
+# 椅子の絞り込み条件検索
 @app.route("/api/chair/search", methods=["GET"])
 def get_chair_search():
     args = flask.request.args
@@ -78,6 +83,9 @@ def get_chair_search():
     conditions = []
     params = []
 
+    # このあたりのコード、個人的に読みづらい…
+    # priceRangeId -> [min, max) みたいな対応付けがありそう
+    # この下４つのrangeに関する処理は全部同じ
     if args.get("priceRangeId"):
         for _range in chair_search_condition["price"]["ranges"]:
             if _range["id"] == int(args.get("priceRangeId")):
@@ -120,6 +128,7 @@ def get_chair_search():
             conditions.append("width < %s")
             params.append(width["max"])
 
+    # 椅子のdepthってなんだ…？全長じゃなくて足の長さとかなのかな
     if args.get("depthRangeId"):
         for _range in chair_search_condition["depth"]["ranges"]:
             if _range["id"] == int(args.get("depthRangeId")):
@@ -134,6 +143,9 @@ def get_chair_search():
             conditions.append("depth < %s")
             params.append(depth["max"])
 
+    # kind, color による完全一致絞り込み
+    # もし文字列で行われていたとすると少しパフォーマンスが悪くなりそうなので
+    # 整数に紐づけたほうがよさそう？
     if args.get("kind"):
         conditions.append("kind = %s")
         params.append(args.get("kind"))
@@ -142,14 +154,19 @@ def get_chair_search():
         conditions.append("color = %s")
         params.append(args.get("color"))
 
+    # features(特徴)による部分一致検索
+    # 文字列検索だし LIKE 使っているのでSQLの改善余地がありそう
     if args.get("features"):
         for feature_confition in args.get("features").split(","):
-            conditions.append("features LIKE CONCAT('%', %s, '%')")
+            conditions.append("features LIKE CONCAT('%', %s, '%')") 
             params.append(feature_confition)
 
+    # 条件が未指定の場合、検索に失敗する
     if len(conditions) == 0:
         raise BadRequest("Search condition not found")
 
+    # 在庫があるという条件は必須
+    # stockが0になったらそもそもテーブルから落とせばいいのでは？
     conditions.append("stock > 0")
 
     try:
@@ -161,23 +178,25 @@ def get_chair_search():
         per_page = int(args.get("perPage"))
     except (TypeError, ValueError):
         raise BadRequest("Invalid format perPage parameter")
-
+    
     search_condition = " AND ".join(conditions)
 
+    # 最初に全件数を取得する
     query = f"SELECT COUNT(*) as count FROM chair WHERE {search_condition}"
     count = select_row(query, params)["count"]
 
+    # (人気の降順, id昇順) にソート
     query = f"SELECT * FROM chair WHERE {search_condition} ORDER BY popularity DESC, id ASC LIMIT %s OFFSET %s"
     chairs = select_all(query, params + [per_page, per_page * page])
 
     return {"count": count, "chairs": camelize(chairs)}
 
-
+# 検索条件の一覧を取得する?
 @app.route("/api/chair/search/condition", methods=["GET"])
 def get_chair_search_condition():
     return chair_search_condition
 
-
+# ある特定の椅子の情報を取得
 @app.route("/api/chair/<int:chair_id>", methods=["GET"])
 def get_chair(chair_id):
     chair = select_row("SELECT * FROM chair WHERE id = %s", (chair_id,))
@@ -185,7 +204,8 @@ def get_chair(chair_id):
         raise NotFound()
     return camelize(chair)
 
-
+# 椅子の購入
+# 購入件数がスコアに反映される（金額は無し）
 @app.route("/api/chair/buy/<int:chair_id>", methods=["POST"])
 def post_chair_buy(chair_id):
     cnx = cnxpool.connect()
