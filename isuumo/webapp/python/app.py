@@ -594,7 +594,7 @@ def post_chair():
                 CHAIR_KINDS(record[10]),
                 bitset_feature
             ]
-            cur.execute(query, record)
+            cur.execute(query_search, param)
         cnx.commit()
         return {"ok": True}, 201
     except Exception as e:
