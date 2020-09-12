@@ -65,3 +65,4 @@ CREATE INDEX index_search_chair_w_idx ON isuumo._search_chair(w_idx);
 CREATE INDEX index_search_chair_d_idx ON isuumo._search_chair(d_idx);
 CREATE INDEX index_search_chair_color_idx ON isuumo._search_chair(color_idx);
 CREATE INDEX index_search_chair_kind_idx ON isuumo._search_chair(kind_idx);
+CREATE INDEX index_search_chair_features ON isuumo._search_chair(features);
