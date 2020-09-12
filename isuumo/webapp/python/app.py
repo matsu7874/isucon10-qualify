@@ -580,18 +580,21 @@ def post_chair():
                     continue
                 bitset_feature |= CHIAR_FEATURES[feature_cond]
             hwd_limits = [80, 110, 150]
+            price_limits = [3000, 6000, 9000, 15000]
             param = [
                 record[0],
                 record[9],
                 record[11],
                 record[12],
+                bisect_left(price_limits, record[4]),
                 bisect_left(hwd_limits, record[5]),
                 bisect_left(hwd_limits, record[6]),
                 bisect_left(hwd_limits, record[7]),
                 CHAIR_COLORS(record[8]),
-                CHAIR_KINDS(record[9]),
+                CHAIR_KINDS(record[10]),
                 bitset_feature
             ]
+            cur.execute(query, record)
         cnx.commit()
         return {"ok": True}, 201
     except Exception as e:
