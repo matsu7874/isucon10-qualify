@@ -8,7 +8,7 @@ CREATE TABLE isuumo._search_estate AS
         rent,
         door_height,
         door_width,
-        features,
+        features as feature_idx,
         popularity,
         case
             when rent < 50000 then 0
@@ -36,4 +36,4 @@ ALTER TABLE isuumo._search_estate ADD PRIMARY KEY (id);
 CREATE INDEX index_rent_idx ON isuumo._search_estate(rent_idx);
 CREATE INDEX index_dh_idx ON isuumo._search_estate(dh_idx);
 CREATE INDEX index_dw_idx ON isuumo._search_estate(dw_idx);
-CREATE INDEX index_features ON isuumo._search_estate(features);
+CREATE INDEX index_features ON isuumo._search_estate(feature_idx);
