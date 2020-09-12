@@ -568,18 +568,19 @@ def post_chair():
         cnx.start_transaction()
         cur = cnx.cursor()
         for record in records:
-            query = "INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-            cur.execute(query, record)
-            query_search = """
-                INSERT INTO _search_chair
-                    (id, feature, popularity, stock, price_idx, h_idx, w_idx, d_idx, color_idx, kind_idx, feature_idx)
-                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """
             bitset_feature = 0
             for feature_cond in record[9].split(','):
                 if not(feature_cond in CHIAR_FEATURES):
                     continue
                 bitset_feature |= 1 << CHIAR_FEATURES[feature_cond]
+            record[9] = feature_idx
+            query = "INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+            cur.execute(query, record)
+            query_search = """
+                INSERT INTO _search_chair
+                    (id, feature_idx, popularity, stock, price_idx, h_idx, w_idx, d_idx, color_idx, kind_idx)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """
             hwd_limits = [80, 110, 150]
             price_limits = [3000, 6000, 9000, 15000]
             param = [
@@ -592,8 +593,7 @@ def post_chair():
                 bisect_left(hwd_limits, record[6]),
                 bisect_left(hwd_limits, record[7]),
                 CHAIR_COLORS[record[8]],
-                CHAIR_KINDS[record[10]],
-                bitset_feature
+                CHAIR_KINDS[record[10]]
             ]
             cur.execute(query_search, param)
         cnx.commit()
