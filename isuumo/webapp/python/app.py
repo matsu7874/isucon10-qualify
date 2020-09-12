@@ -616,17 +616,18 @@ def post_estate():
         cur = cnx.cursor()
         for record in records:
             query = "INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+            bitset_feature = 0
+            for feature_cond in record[10].split(','):
+                if not(feature_cond in ESTATE_FEATURES):
+                    continue
+                bitset_feature |= 1 << ESTATE_FEATURES[feature_cond]
+            record[10] = bitset_feature
             cur.execute(query, record)
             query_search = """
                 INSERT INTO _search_estate
                     (id, latitude, longitude, rent, door_height, door_width, feature_idx, popularity, rent_idx, dh_idx, dw_idx)
                 VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """
-            bitset_feature = 0
-            for feature_cond in record[10].split(','):
-                if not(feature_cond in ESTATE_FEATURES):
-                    continue
-                bitset_feature |= 1 << ESTATE_FEATURES[feature_cond]
             hwd_limits = [80, 110, 150]
             rent_limits = [50000, 100000, 150000]
             param = [
