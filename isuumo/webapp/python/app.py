@@ -616,6 +616,33 @@ def post_estate():
         for record in records:
             query = "INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
             cur.execute(query, record)
+            query_search = """
+                INSERT INTO _search_estate
+                    (id, latitude, longitude, rent, door_height, door_width, feature, popularity, rent_idx, dh_idx, dw_idx, feature_idx)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """
+            bitset_feature = 0
+            for feature_cond in record[10].split(','):
+                if not(feature_cond in ESTATE_FEATURES):
+                    continue
+                bitset_feature |= 1 << ESTATE_FEATURES[feature_cond]
+            hwd_limits = [80, 110, 150]
+            rent_limits = [50000, 100000, 150000]
+            param = [
+                record[0],
+                record[5],
+                record[6],
+                record[7],
+                record[8],
+                record[9],
+                record[10],
+                record[11],
+                bisect_left(price_limits, record[7]),
+                bisect_left(hwd_limits, record[8]),
+                bisect_left(hwd_limits, record[9]),
+                bitset_feature
+            ]
+            cur.execute(query, record)
         cnx.commit()
         return {"ok": True}, 201
     except Exception as e:
