@@ -136,19 +136,24 @@ def get_chair_search():
     # もし文字列で行われていたとすると少しパフォーマンスが悪くなりそうなので
     # 整数に紐づけたほうがよさそう？
     if args.get("kind"):
-        conditions.append("kind = %s")
-        params.append(args.get("kind"))
+        conditions.append("kind_idx = %s")
+        params.append(CHAIR_KINDS[args.get("kind")])
 
     if args.get("color"):
-        conditions.append("color = %s")
-        params.append(args.get("color"))
+        conditions.append("color_idx = %s")
+        params.append(CHAIR_COLORS[args.get("color")])
 
     # features(特徴)による部分一致検索
     # 文字列検索だし LIKE 使っているのでSQLの改善余地がありそう
     if args.get("features"):
-        for feature_confition in args.get("features").split(","):
-            conditions.append("features LIKE CONCAT('%', %s, '%')")
-            params.append(feature_confition)
+        features_conditions = list(args.get("features").split(","))
+        feature_bitset = 0
+        for fc in features_conditions:
+            if fc not in CHAIR_FEATURES:
+                continue
+            feature_bitset ^= 1 << CHIAR_FEATURES[fc]
+        conditions.append("feature_idx = %s")
+        params.append(feature_bitset)
 
     # 条件が未指定の場合、検索に失敗する
     if len(conditions) == 0:
