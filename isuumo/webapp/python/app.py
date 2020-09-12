@@ -212,7 +212,10 @@ def post_chair_buy(chair_id):
         chair = cur.fetchone()
         if chair is None:
             raise NotFound()
-        cur.execute("UPDATE chair SET stock = stock - 1 WHERE id = %s", (chair_id,))
+        if chair["stock"] == 1:
+            cur.execute("DELETE FROM _search_chair WHERE id = %s", (char_id, ))
+        else:
+            cur.execute("UPDATE chair SET stock = stock - 1 WHERE id = %s", (chair_id,))
         cnx.commit()
         return {"ok": True}
     except Exception as e:
