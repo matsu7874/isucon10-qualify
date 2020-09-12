@@ -1,0 +1,19 @@
+ServerAliveInterval 60
+
+ Host isucon-bastion
+   HostName 157.112.64.26
+   Port 20340
+   User isucon
+
+ Host isucon-server-1
+   ProxyJump isucon-bastion
+   User isucon
+   HostName 10.160.26.101
+ Host isucon-server-2
+   ProxyJump isucon-bastion
+   User isucon
+   HostName 10.160.26.102
+ Host isucon-server-3
+   ProxyJump isucon-bastion
+   User isucon
+   HostName 10.160.26.103
