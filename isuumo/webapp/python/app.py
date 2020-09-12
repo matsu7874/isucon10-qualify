@@ -638,12 +638,12 @@ def post_estate():
                 record[9],
                 record[10],
                 record[11],
-                bisect_left(price_limits, record[7]),
+                bisect_left(rent_limits, record[7]),
                 bisect_left(hwd_limits, record[8]),
                 bisect_left(hwd_limits, record[9]),
                 bitset_feature
             ]
-            cur.execute(query, record)
+            cur.execute(query_search, param)
         cnx.commit()
         return {"ok": True}, 201
     except Exception as e:
