@@ -591,8 +591,8 @@ def post_chair():
                 bisect_left(hwd_limits, record[5]),
                 bisect_left(hwd_limits, record[6]),
                 bisect_left(hwd_limits, record[7]),
-                CHAIR_COLORS(record[8]),
-                CHAIR_KINDS(record[10]),
+                CHAIR_COLORS[record[8]],
+                CHAIR_KINDS[record[10]],
                 bitset_feature
             ]
             cur.execute(query_search, param)
