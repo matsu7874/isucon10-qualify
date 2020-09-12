@@ -8,6 +8,7 @@ from werkzeug.exceptions import BadRequest, NotFound
 import mysql.connector
 from sqlalchemy.pool import QueuePool
 from humps import camelize # snake_case を camelCase に変換するものらしい
+from bisect import bisect_left
 
 # この定数が何なのか気になる
 LIMIT = 20
@@ -568,6 +569,29 @@ def post_chair():
         for record in records:
             query = "INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
             cur.execute(query, record)
+            query_search = """
+                INSERT INTO _search_chair
+                    (id, feature, popularity, stock, price_idx, h_idx, w_idx, d_idx, color_idx, kind_idx, feature_idx)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """
+            bitset_feature = 0
+            for feature_cond in record[9].split(','):
+                if not(feature_cond in CHIAR_FEATURES):
+                    continue
+                bitset_feature |= CHIAR_FEATURES[feature_cond]
+            hwd_limits = [80, 110, 150]
+            param = [
+                record[0],
+                record[9],
+                record[11],
+                record[12],
+                bisect_left(hwd_limits, record[5]),
+                bisect_left(hwd_limits, record[6]),
+                bisect_left(hwd_limits, record[7]),
+                CHAIR_COLORS(record[8]),
+                CHAIR_KINDS(record[9]),
+                bitset_feature
+            ]
         cnx.commit()
         return {"ok": True}, 201
     except Exception as e:
