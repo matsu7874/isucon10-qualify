@@ -293,7 +293,7 @@ def get_estate_search():
     query = f'''
         SELECT
             es.*
-        FROM (SELECT *
+        FROM (SELECT id
             FROM _search_estate
             WHERE {search_condition}
             ORDER BY popularity DESC, id ASC
