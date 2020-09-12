@@ -225,7 +225,8 @@ def post_chair_buy(chair_id):
     finally:
         cnx.close()
 
-
+# 不動産の絞り込み検索
+# ロジックは椅子の絞り込み検索と全く同様(=椅子の課題を解決できればこちらも改善につながる)
 @app.route("/api/estate/search", methods=["GET"])
 def get_estate_search():
     args = flask.request.args
@@ -298,6 +299,7 @@ def get_estate_search():
     query = f"SELECT COUNT(*) as count FROM estate WHERE {search_condition}"
     count = select_row(query, params)["count"]
 
+    # 人気降順にソート
     query = f"SELECT * FROM estate WHERE {search_condition} ORDER BY popularity DESC, id ASC LIMIT %s OFFSET %s"
     chairs = select_all(query, params + [per_page, per_page * page])
 
@@ -308,7 +310,8 @@ def get_estate_search():
 def get_estate_search_condition():
     return estate_search_condition
 
-
+# 不動産に関しては資料請求数がスコアに繋がる
+# わざわざSQL叩かなくても良いような気がする(その不動産idが存在することさえ分かればよいので)
 @app.route("/api/estate/req_doc/<int:estate_id>", methods=["POST"])
 def post_estate_req_doc(estate_id):
     estate = select_row("SELECT * FROM estate WHERE id = %s", (estate_id,))
@@ -316,7 +319,7 @@ def post_estate_req_doc(estate_id):
         raise NotFound()
     return {"ok": True}
 
-
+# nazotte とは？(そのような英語は無い)
 @app.route("/api/estate/nazotte", methods=["POST"])
 def post_estate_nazotte():
     if "coordinates" not in flask.request.json:
