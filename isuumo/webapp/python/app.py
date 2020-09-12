@@ -531,28 +531,17 @@ def get_recommended_estate(chair_id):
     chair = select_row("SELECT * FROM chair WHERE id = %s", (chair_id,))
     if chair is None:
         raise BadRequest(f"Invalid format searchRecommendedEstateWithChair id : {chair_id}")
-    w, h, d = chair["width"], chair["height"], chair["depth"]
+    w, h, d = sorted([chair["width"], chair["height"], chair["depth"]])
 
     # このクエリ条件が多くて遅そう?
     # 椅子がドアを通るかどうかを判定している
     query = (
         "SELECT * FROM estate"
-        " WHERE (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の幅, ドアの高さ >= 椅子の高さ
-        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の幅, ドアの高さ >= 椅子の奥行
-        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の高さ, ドアの高さ >= 椅子の幅
-        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の高さ, ドアの高さ >= 椅子の奥行
-        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の奥行, ドアの高さ >= 椅子の幅
-        "    OR (door_width >= %s AND door_height >= %s)" # ドアの幅 >= 椅子の奥行, ドアの高さ >= 椅子の高さ
-        # まず w, h, d をソートして w <= h <= d である状態にしておく、一番長いところは明らかに使わないほうが良いので
-        # w, h だけ考えればよくなる
-        # w <= h より
-        # w >= min(door_width, door_height)
-        # h >= max(door_width, dorr_height)
-        # であることだけを確かめればよい？（要検証）
+        " WHERE LEAST(door_width, door_height) >= %s AND GREATEST(door_width, door_height) >= %s"
         " ORDER BY popularity DESC, id ASC"
         " LIMIT %s"
     )
-    estates = select_all(query, (w, h, w, d, h, w, h, d, d, w, d, h, LIMIT))
+    estates = select_all(query, (w, h, LIMIT))
     return {"estates": camelize(estates)}
 
 # 新しい椅子の入稿
