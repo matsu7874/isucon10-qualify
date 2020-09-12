@@ -619,7 +619,7 @@ def post_estate():
             cur.execute(query, record)
             query_search = """
                 INSERT INTO _search_estate
-                    (id, latitude, longitude, rent, door_height, door_width, feature, popularity, rent_idx, dh_idx, dw_idx, feature_idx)
+                    (id, latitude, longitude, rent, door_height, door_width, feature_idx, popularity, rent_idx, dh_idx, dw_idx)
                 VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """
             bitset_feature = 0
