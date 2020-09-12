@@ -88,61 +88,49 @@ def get_chair_search():
     # priceRangeId -> [min, max) みたいな対応付けがありそう
     # この下４つのrangeに関する処理は全部同じ
     if args.get("priceRangeId"):
+        price = None
         for _range in chair_search_condition["price"]["ranges"]:
             if _range["id"] == int(args.get("priceRangeId")):
                 price = _range
                 break
-        else:
+        if price is None:
             raise BadRequest("priceRangeID invalid")
-        if price["min"] != -1:
-            conditions.append("price >= %s")
-            params.append(price["min"])
-        if price["max"] != -1:
-            conditions.append("price < %s")
-            params.append(price["max"])
+        conditions.append("price_idx = %s")
+        params.append(price["id"])
 
     if args.get("heightRangeId"):
+        height = None
         for _range in chair_search_condition["height"]["ranges"]:
             if _range["id"] == int(args.get("heightRangeId")):
                 height = _range
                 break
-        else:
+        if height is None:
             raise BadRequest("heightRangeId invalid")
-        if height["min"] != -1:
-            conditions.append("height >= %s")
-            params.append(height["min"])
-        if height["max"] != -1:
-            conditions.append("height < %s")
-            params.append(height["max"])
+        conditions.append("h_idx = %s")
+        params.append(height["id"])
 
     if args.get("widthRangeId"):
+        width = None
         for _range in chair_search_condition["width"]["ranges"]:
             if _range["id"] == int(args.get("widthRangeId")):
                 width = _range
                 break
-        else:
+        if width is None:
             raise BadRequest("widthRangeId invalid")
-        if width["min"] != -1:
-            conditions.append("width >= %s")
-            params.append(width["min"])
-        if width["max"] != -1:
-            conditions.append("width < %s")
-            params.append(width["max"])
+        conditions.append("w_idx = %s")
+        params.append(width["id"])
 
-    # 椅子のdepthってなんだ…？全長じゃなくて足の長さとかなのかな
+    # depth = 奥行?
     if args.get("depthRangeId"):
+        depth = None
         for _range in chair_search_condition["depth"]["ranges"]:
             if _range["id"] == int(args.get("depthRangeId")):
                 depth = _range
                 break
-        else:
+        if depth is None:
             raise BadRequest("depthRangeId invalid")
-        if depth["min"] != -1:
-            conditions.append("depth >= %s")
-            params.append(depth["min"])
-        if depth["max"] != -1:
-            conditions.append("depth < %s")
-            params.append(depth["max"])
+        conditions.append("d_idx = %s")
+        params.append(depth["id"])
 
     # kind, color による完全一致絞り込み
     # もし文字列で行われていたとすると少しパフォーマンスが悪くなりそうなので
@@ -166,10 +154,6 @@ def get_chair_search():
     if len(conditions) == 0:
         raise BadRequest("Search condition not found")
 
-    # 在庫があるという条件は必須
-    # stockが0になったらそもそもテーブルから落とせばいいのでは？
-    conditions.append("stock > 0")
-
     try:
         page = int(args.get("page"))
     except (TypeError, ValueError):
@@ -183,11 +167,22 @@ def get_chair_search():
     search_condition = " AND ".join(conditions)
 
     # 最初に全件数を取得する
-    query = f"SELECT COUNT(*) as count FROM chair WHERE {search_condition}"
+    query = f"SELECT COUNT(*) as count FROM _search_chair WHERE {search_condition}"
     count = select_row(query, params)["count"]
 
     # (人気の降順, id昇順) にソート
-    query = f"SELECT * FROM chair WHERE {search_condition} ORDER BY popularity DESC, id ASC LIMIT %s OFFSET %s"
+    query = f'''
+        SELECT ch.*
+        FROM (
+            SELECT id
+            FROM _search_chair
+            WHERE {search_condition}
+            ORDER BY popularity DESC, id ASC
+            LIMIT %s
+            OFFSET %s
+        ) as sc
+        INNER JOIN chair ch USING (id)
+    '''
     chairs = select_all(query, params + [per_page, per_page * page])
 
     return {"count": count, "chairs": camelize(chairs)}
